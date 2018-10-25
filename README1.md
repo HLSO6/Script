@@ -1,5 +1,5 @@
 ## BitcoinDiamond-Docker
-
+A BitcoinDiamond Core docker image.
 ### build
 
 ```
@@ -39,6 +39,5 @@ docker exec --user bitcoin container_name bitcoindiamond-cli getmininginfo
 
 ### Reference
 
-```
  - https://github.com/ruimarinho/docker-bitcoin-core
-```
+
