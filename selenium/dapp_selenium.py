@@ -15,6 +15,8 @@ every_list = []
 detail_urls = {}
 
 client = MongoClient(host="localhost", port=27017)
+#client = MongoClient("mongodb://test:123456@127.0.0.1:27017/?authSource=test")
+#mydb = client["test"]
 mydb = client["dapp"]
 my_set = mydb["dapp_info"]
 
@@ -78,17 +80,13 @@ class dappViewSpider(object):
         for info in dapp_list:
             self.driver.get(info['url'])
             time.sleep(2)
-            divs1 = self.driver.find_element_by_tag_name('h2')
-            name = divs1.text
             try:
+                divs1 = self.driver.find_element_by_tag_name('h2')
+                name = divs1.text
                 url = divs1.find_element_by_xpath('../a').get_attribute("href")
             except:
                 url = ""
-            str = 'dappreview23'
-            if url.find(str) != -1:
-                detail_urls[name] = re.sub(r'(\/\#|\/\?|\/dappreview|\?ref).*', '', url)
-            else:
-                detail_urls[name] = url
+            detail_urls[name] = re.sub(r'(\/\#|\?|\/dappreview).*', '', url)
             i+=1
             logging.info(u"officialSite %d %s %s"%(i,name,detail_urls[name]))
 
@@ -102,36 +100,33 @@ class dappViewSpider(object):
 
     def updateInfoCollection(self):
         for dapp in dapp_list:
+            dapp['officialSite'] = detail_urls[dapp['name']]
             myquery = {"name": dapp['name']}
             result = my_set.find_one(myquery)
             if result is None:
                 my_set.insert_one(dapp)
             else:
-                newvalues =  {"$set": {"dau": dapp['dau'],
+                if dapp['officialSite'] == "":
+                    newvalues =  {"$set": {"dau": dapp['dau'],
                                        "txAmount": dapp['txAmount'],
-                                       "txCount": dapp['txCount']
+                                       "txCount": dapp['txCount'],
+                                       "time": dapp['time']
+                                       }}
+                else:
+                    newvalues =  {"$set": {"dau": dapp['dau'],
+                                       "txAmount": dapp['txAmount'],
+                                       "txCount": dapp['txCount'],
+                                        "time": dapp['time'],
+                                       "officialSite": dapp['officialSite']
                                        }}
                 my_set.update_one(myquery, newvalues)
-        logging.info(u'-------更新dapp_url--------')
-        if detail_urls:
-            for key,value in detail_urls.items():
-                newvalues1 = {"$set": {"officialSite": value}}
-                myquery1 = {"name": key}
-                result1 = my_set.find_one(myquery1)
-                if result1['officialSite'] =='':
-                    my_set.update_one(myquery1, newvalues1)
-
 
     def updateDapps(self):
+        dapp_history = mydb['dapp_history']
         for dapp in every_list:
-            my_dapp = mydb[dapp['name']]
-            my_dapp.insert_one(dapp)
-            if detail_urls[dapp['name']] !='':
-                newvalues = {"$set": {"officialSite": detail_urls[dapp['name']]}}
-                myquery = {"name": dapp['name']}
-                logging.info(u"url:%s %s"%(dapp['name'],detail_urls[dapp['name']]))
-                my_dapp.update_many(myquery, newvalues)
-
+            #my_dapp = mydb[dapp['name']]
+            dapp['officialSite'] = detail_urls[dapp['name']]
+            dapp_history.insert_one(dapp)
 
     def updateStep(self):
         result = my_set.find_one()
