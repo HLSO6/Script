@@ -96,37 +96,46 @@ class dappViewSpider(object):
             for key,value in detail_urls.items():
                 newvalues = {"$set": {"officialSite": value}}
                 myquery = {"name": key }
-                my_set.update_one(myquery, newvalues)
+                try:
+                    my_set.update_one(myquery, newvalues)
+                except:
+                    logging.error(u'更新失败-%s'% key)
 
     def updateInfoCollection(self):
         for dapp in dapp_list:
             dapp['officialSite'] = detail_urls[dapp['name']]
             myquery = {"name": dapp['name']}
-            result = my_set.find_one(myquery)
-            if result is None:
-                my_set.insert_one(dapp)
-            else:
-                if dapp['officialSite'] == "":
-                    newvalues =  {"$set": {"dau": dapp['dau'],
-                                       "txAmount": dapp['txAmount'],
-                                       "txCount": dapp['txCount'],
-                                       "time": dapp['time']
-                                       }}
+            try:
+                result = my_set.find_one(myquery)
+                if result is None:
+                    my_set.insert_one(dapp)
                 else:
-                    newvalues =  {"$set": {"dau": dapp['dau'],
-                                       "txAmount": dapp['txAmount'],
-                                       "txCount": dapp['txCount'],
-                                        "time": dapp['time'],
-                                       "officialSite": dapp['officialSite']
-                                       }}
-                my_set.update_one(myquery, newvalues)
+                    if dapp['officialSite'] == "":
+                        newvalues =  {"$set": {"dau": dapp['dau'],
+                                           "txAmount": dapp['txAmount'],
+                                           "txCount": dapp['txCount'],
+                                           "time": dapp['time']
+                                           }}
+                    else:
+                        newvalues =  {"$set": {"dau": dapp['dau'],
+                                           "txAmount": dapp['txAmount'],
+                                           "txCount": dapp['txCount'],
+                                            "time": dapp['time'],
+                                           "officialSite": dapp['officialSite']
+                                           }}
+                    my_set.update_one(myquery, newvalues)
+            except:
+                logging.error(u'查询失败-%s'% dapp['name'])
 
     def updateDapps(self):
         dapp_history = mydb['dapp_history']
         for dapp in every_list:
             #my_dapp = mydb[dapp['name']]
             dapp['officialSite'] = detail_urls[dapp['name']]
-            dapp_history.insert_one(dapp)
+            try:
+                dapp_history.insert_one(dapp)
+            except:
+                logging.error(u'插入失败-%s' % dapp['name'])
 
     def updateStep(self):
         result = my_set.find_one()
@@ -136,7 +145,7 @@ class dappViewSpider(object):
         else:
             logging.info(u'-------更新dapp_info集合--------')
             self.updateInfoCollection()
-        logging.info(u'-------更新所有dapp集合--------')
+        logging.info(u'-------更新dapp_history集合--------')
         self.updateDapps()
 
 if __name__ == '__main__':
